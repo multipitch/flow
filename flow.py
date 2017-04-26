@@ -1,17 +1,16 @@
 import math
 
-from scipy.optimize import brentq
-
 LAMINAR_BOUNDARY = 2100
 ACCELERATION_DUE_TO_GRAVITY = 9.80665
 
 
 class Segment:
     
-    def __init__(self, length=0, K=0, elevation_gain=0, mass_flowrate=0,
-                 fluid=None, pipe=None, node_in = None, node_out = None):
+    def __init__(self, length=0, K_fittings=0, elevation_gain=0,
+                 mass_flowrate=0, fluid=None, pipe=None, node_in = None,
+                 node_out = None):
         self.length = length
-        self.K = K # TODO replace with elements dict
+        self.K_fittings = K_fittings # TODO replace with elements dict
         self.elevation_gain = elevation_gain
         self.mass_flowrate = mass_flowrate
         self.fluid = fluid
@@ -24,13 +23,17 @@ class Segment:
         self.velocity = math.nan
         self.reynolds_number = math.nan
         self.friction_factor = math.nan
+        self.K_pipe = math.nan
+        self.K_total = math.nan
         self.pressure_drop_static = math.nan
         self.pressure_drop_pipe = math.nan
         self.pressure_drop_elements = math.nan
         self.pressure_drop_dynamic = math.nan
         self.pressure_drop_total = math.nan
     
-    
+        #self.update()
+        
+        
     def update(self):
         """Calculate pipe pressure drop."""
         
@@ -70,14 +73,19 @@ class Segment:
                                      ACCELERATION_DUE_TO_GRAVITY)
         
         if self.diameter > 0:
-            self.pressure_drop_pipe = (0.5 * self.friction_factor * 
-                                       self.length * self.fluid.density *
-                                       self.velocity * self.velocity /
-                                       self.pipe.diameter)
+            self.K_pipe = (self.friction_factor * self.length /
+                           self.pipe.diameter)
         else:
-            self.pressure_drop_pipe = math.nan
+            self.K_pipe = math.nan
+            
+        self.K_total = self.K_pipe + self.K_fittings
         
-        self.pressure_drop_elements = (self.K * 0.5 * self.fluid.density *
+        self.pressure_drop_pipe = (self.K_pipe * 0.5 * self.fluid.density *
+                                   self.velocity * self.velocity)
+
+
+        self.pressure_drop_elements = (self.K_fittings * 0.5 *
+                                       self.fluid.density *
                                        self.velocity * self.velocity)
         
         self.pressure_drop_dynamic = (self.pressure_drop_pipe +
